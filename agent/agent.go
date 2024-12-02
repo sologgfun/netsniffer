@@ -29,7 +29,7 @@ func SetupAgent(options ac.AgentOptions) {
 	// 检查BPF是否启用
 	if enabled, err := common.IsEnableBPF(); err == nil && !enabled {
 		common.AgentLog.Error("BPF is not enabled in your kernel. This might be because your kernel version is too old. " +
-			"Please check the requirements for Kyanos at https://kyanos.pages.dev/quickstart.html#installation-requirements.")
+			"Please check the requirements for Kyanos at https://kyanos.io/quickstart.html#installation-requirements.")
 	}
 
 	// 验证和修复选项
