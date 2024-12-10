@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/features"
 	"github.com/cilium/ebpf/link"
+	"github.com/shirou/gopsutil/process"
 	"github.com/spf13/viper"
 )
 
@@ -48,8 +49,7 @@ func (b *BPF) Close() {
 	common.AgentLog.Debugln("All links closed!")
 }
 
-// LoadBPF 加载 eBPF 程序和映射，并进行必要的初始化和验证
-func LoadBPF(options ac.AgentOptions) (*BPF, error) {
+func LoadBPF(options *ac.AgentOptions) (*BPF, error) {
 	var objs *bpf.AgentObjects
 	var spec *ebpf.CollectionSpec
 	var collectionOptions *ebpf.CollectionOptions
@@ -114,8 +114,7 @@ func LoadBPF(options ac.AgentOptions) (*BPF, error) {
 		return nil, err
 	}
 
-	// 设置并验证参数
-	var validateResult = setAndValidateParameters(options.Ctx, &options)
+	var validateResult = setAndValidateParameters(options.Ctx, options)
 	if !validateResult {
 		return nil, fmt.Errorf("validate param failed!")
 	}
@@ -140,12 +139,13 @@ func LoadBPF(options ac.AgentOptions) (*BPF, error) {
 	// bf.links = links
 	return bf, nil
 }
-func (bf *BPF) AttachProgs(options ac.AgentOptions) error {
+
+func (bf *BPF) AttachProgs(options *ac.AgentOptions) error {
 	var links *list.List
 	if options.LoadBpfProgramFunction != nil {
 		links = options.LoadBpfProgramFunction()
 	} else {
-		links = attachBpfProgs(options.IfName, options.Kv, &options)
+		links = attachBpfProgs(options.IfName, options.Kv, options)
 	}
 
 	options.LoadPorgressChannel <- "🍆 Attached base eBPF programs."
@@ -276,6 +276,54 @@ func setAndValidateParameters(ctx context.Context, options *ac.AgentOptions) boo
 		}
 	}
 
+	if options.FilterComm != "" {
+		one := int64(1)
+		controlValues.Update(bpf.AgentControlValueIndexTKEnableFilterByPid, one, ebpf.UpdateAny)
+
+		common.AgentLog.Infoln("filter for comm:", options.FilterComm)
+		processes, err := process.Processes()
+		if err != nil {
+			common.AgentLog.Errorf("Failed to get all processes: %s\n", err)
+			return false
+		}
+		var matchedPids []int32
+		for _, proc := range processes {
+			if isProcNameMacthed(proc, options.FilterComm) {
+				matchedPids = append(matchedPids, proc.Pid)
+			} else {
+				pn, _ := proc.Exe()
+				common.AgentLog.Debugf("Not matched: %s %s\n", pn, options.FilterComm)
+			}
+		}
+
+		common.AgentLog.Infof("Matched pids by command name: %v\n", matchedPids)
+
+		for _, matchedPid := range matchedPids {
+			err = filterPidMap.Update(uint32(matchedPid), int8(one), ebpf.UpdateAny)
+			if err != nil {
+				common.AgentLog.Errorf("Failed update  FilterPidMap: %s\n", err)
+			}
+		}
+		options.ProcessExecEventChannel = make(chan *bpf.AgentProcessExecEvent, 10)
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case execEvent := <-options.ProcessExecEventChannel:
+					proc, err := process.NewProcess(execEvent.Pid)
+
+					if err == nil && isProcNameMacthed(proc, options.FilterComm) {
+						err = filterPidMap.Update(uint32(execEvent.Pid), int8(one), ebpf.UpdateAny)
+						if err != nil {
+							common.AgentLog.Errorf("Failed update  FilterPidMap: %s\n", err)
+						}
+					}
+				}
+			}
+		}()
+	}
+
 	if options.FilterByContainer() && !options.Kv.SupportCapability(compatible.SupportFilterByContainer) {
 		common.AgentLog.Warnf("current kernel version 3.10 doesn't support filter by container id/name/podname etc.")
 	} else if options.FilterByContainer() {
@@ -356,6 +404,17 @@ func setAndValidateParameters(ctx context.Context, options *ac.AgentOptions) boo
 	}
 
 	return true
+}
+
+func isProcNameMacthed(proc *process.Process, filterComm string) bool {
+	procName, _ := proc.Name()
+	if procName == filterComm {
+		return true
+	}
+	if strings.Contains(procName, "/"+filterComm) {
+		return true
+	}
+	return false
 }
 
 // attachBpfProgs 附加 eBPF 程序到指定的网络接口和内核版本
@@ -467,7 +526,7 @@ func attachBpfProgs(ifName string, kernelVersion *compatible.KernelVersion, opti
 	return linkList
 }
 
-func attachOpenSslUprobes(links *list.List, options ac.AgentOptions, kernelVersion *compatible.KernelVersion, objs any) {
+func attachOpenSslUprobes(links *list.List, options *ac.AgentOptions, kernelVersion *compatible.KernelVersion, objs any) {
 	if attachOpensslToSpecificProcess() {
 		sslUprobeLinks, err := uprobe.AttachSslUprobe(int(viper.GetInt64(common.FilterPidVarName)))
 		if err == nil {
@@ -517,7 +576,11 @@ func attachOpenSslUprobes(links *list.List, options ac.AgentOptions, kernelVersi
 		}
 		attachSchedProgs(links)
 		uprobeSchedExecEvent := uprobe.StartHandleSchedExecEvent()
-		bpf.PullProcessExecEvents(options.Ctx, []chan *bpf.AgentProcessExecEvent{uprobeSchedExecEvent})
+		execEventChannels := []chan *bpf.AgentProcessExecEvent{uprobeSchedExecEvent}
+		if options.ProcessExecEventChannel != nil {
+			execEventChannels = append(execEventChannels, options.ProcessExecEventChannel)
+		}
+		bpf.PullProcessExecEvents(options.Ctx, execEventChannels)
 	}
 }
 

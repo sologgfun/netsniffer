@@ -83,7 +83,7 @@ func SetupAgent(options ac.AgentOptions) {
 		options.Kv = &kernelVersion
 		var err error
 		{
-			bf, err := loader.LoadBPF(options)
+			bf, err := loader.LoadBPF(&options)
 			if err != nil {
 				common.AgentLog.Error("Failed to load BPF programs: ", err)
 				if bf != nil {
@@ -115,7 +115,7 @@ func SetupAgent(options ac.AgentOptions) {
 		if err != nil {
 			return
 		}
-		_bf.AttachProgs(options)
+		_bf.AttachProgs(&options)
 		if !options.WatchOptions.DebugOutput {
 			options.LoadPorgressChannel <- "🍹 All programs attached"
 			options.LoadPorgressChannel <- "🍭 Waiting for events.."
