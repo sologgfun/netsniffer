@@ -9,6 +9,7 @@ import (
 var maxRecords int
 
 // 定义 watch 命令
+var supportedProtocols = []string{"http", "redis", "mysql"}
 var watchCmd = &cobra.Command{
 	Use: "watch [http|redis|mysql] [flags]",
 	Example: `
@@ -26,10 +27,11 @@ sudo kyanos watch mysql --latency 100 --req-size 1024 --resp-size 2048
 			logger.Errorln(err)
 		} else {
 			if list {
-				// 如果设置了 list 标志，打印支持的协议
-				fmt.Println([]string{"http", "redis", "mysql"})
+				fmt.Println(supportedProtocols)
 			} else {
-				// 初始化过滤器并启动代理
+				if len(args) > 0 {
+					logger.Fatalln("current only support:", supportedProtocols)
+				}
 				options.LatencyFilter = initLatencyFilter(cmd)
 				options.SizeFilter = initSizeFilter(cmd)
 				startAgent()
