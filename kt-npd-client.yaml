@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kt-npd-client
+  namespace: kt
+  labels:
+    app: kt-npd-client
+spec:
+  selector:
+    matchLabels:
+      app: kt-npd-client
+  template:
+    metadata:
+      labels:
+        app: kt-npd-client
+    spec:
+      hostIPC: true
+      hostPID: true
+      hostNetwork: true
+      dnsPolicy: "ClusterFirstWithHostNet"
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      volumes:
+        - name: host-root-volume
+          hostPath:
+            path: /sys
+        - name: container-root-volume
+          hostPath:
+            path: /kyanosdir
+      containers:
+        - name: kt-npd-client
+          image: todohub/kt-npd-client:v0.1
+          imagePullPolicy: Always
+          command: ["/bin/sh"]
+          args: ["-c", "cp /kyanos /root/kyanos && while true; do echo hello; sleep 10;done"]
+          ports:
+            - containerPort: 8080
+          securityContext:
+            privileged: true
+            runAsGroup: 0
+            runAsUser: 0
+          volumeMounts: 
+            - mountPath: /sys
+              name: host-root-volume
+            - mountPath: /root
+              name: container-root-volume
