@@ -578,7 +578,7 @@ func SendDataToK8s(ctx context.Context, options WatchOptions, ch chan *common.An
 		case record := <-ch:
 			// 将record发送到Kubernetes服务kt-npd
 			// 这里假设kt-npd服务在default命名空间中，并且有一个/receiveData的端点
-			serviceURL := "http://kt-npd-server.kt.svc.cluster.local:8080/save"
+			serviceURL := "http://kt-npd-server.kt.svc.cluster.local:8080/api/save"
 			err := sendRecordToService(serviceURL, record)
 			if err != nil {
 				c.DefaultLog.Errorf("Error sending record to service: %v", err)
