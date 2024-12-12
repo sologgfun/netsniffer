@@ -17,8 +17,5 @@ ALTER USER 'root'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'rootpw
 FLUSH PRIVILEGES;
 EOF
 
-# 设置前端文件目录
-export FRONTEND_DIR=/frontend/dist
-
 # 启动 kt-npd-server
 /kt-npd-server

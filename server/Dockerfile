@@ -18,8 +18,6 @@ RUN apt-get update && \
 COPY ./mysql/start.sh /mysql/start.sh
 COPY ./mysql/schema.sql /mysql/schema.sql
 COPY /kt-npd-server /kt-npd-server
-# 复制本地构建的前端文件
-COPY ./frontend/dist /frontend/dist
 
 # 确保脚本可执行
 RUN chmod +x /mysql/start.sh
