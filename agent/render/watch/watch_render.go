@@ -563,7 +563,7 @@ func RunWatchRender(ctx context.Context, ch chan *common.AnnotatedRecord, option
 		if false {
 			PrintDataByTea(ctx, options, ch)
 		} else {
-			fmt.Println("SendDataToK8s!")
+			fmt.Println("SendDataToK8s...")
 			// 否则通过当前k8s接口上报数据
 			SendDataToK8s(ctx, options, ch)
 		}
@@ -619,7 +619,27 @@ func recordToConnectionRecord(record *common.AnnotatedRecord) *ConnectionRecord 
 	}
 }
 
+var recordCount int
+
 func sendRecordToService(url string, record *common.AnnotatedRecord) error {
+	// 获取当前命令行工具的进程ID
+	pid := os.Getpid()
+	// 如果record的进程ID和当前进程ID一致，则不发送
+	if record.Pid == uint32(pid) {
+		fmt.Println("record pid equal to current pid, skip")
+		return nil
+	}
+	// 如果 c.GetPidCmdString(int32(record.Pid))包含"kyanos"，则不发送
+	if strings.Contains(c.GetPidCmdString(int32(record.Pid)), "kyanos") {
+		fmt.Println("record pid contains kyanos, skip")
+		return nil
+	}
+	// 判断record
+	recordCount++
+	if recordCount > 100 {
+		fmt.Println("record more than 100 times, exit")
+		os.Exit(0)
+	}
 	// 将record转换为ConnectionRecord
 	connectionRecord := recordToConnectionRecord(record)
 	// 将record转换为JSON
