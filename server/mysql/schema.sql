@@ -1,4 +1,4 @@
-create database `kyanos_server` default character set utf8 collate utf8_general_ci;
+create database `kyanos_server` default character set utf8mb4 collate utf8mb4_general_ci;
 
 use kyanos_server;
 
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS connection_records (
         process VARCHAR(255) DEFAULT '',
         net_internal_time_ms FLOAT DEFAULT 0.0,
         read_socket_time_ms FLOAT DEFAULT 0.0,
-        start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
         request TEXT,
         response TEXT
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
