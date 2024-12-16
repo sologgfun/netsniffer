@@ -20,15 +20,18 @@ import (
 type Port uint16
 
 type ConnDesc struct {
-	LocalPort  Port
-	RemotePort Port
-	RemoteAddr net.IP
-	LocalAddr  net.IP
-	Pid        uint32
-	Protocol   uint32
-	Side       SideEnum
-	StreamId   int
-	IsSsl      bool
+	LocalPort     Port
+	RemotePort    Port
+	RemoteAddrStr string
+	LocalAddrStr  string
+	RemoteAddr    net.IP
+	LocalAddr     net.IP
+	Pid           uint32
+	PidStr        string
+	Protocol      uint32
+	Side          SideEnum
+	StreamId      int
+	IsSsl         bool
 }
 
 func (c *ConnDesc) Identity() string {

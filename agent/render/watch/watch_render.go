@@ -588,36 +588,36 @@ func SendDataToK8s(ctx context.Context, options WatchOptions, ch chan *common.An
 	}
 }
 
-type ConnectionRecord struct {
-	ID                int       `json:"id"`
-	ConnectionDesc    string    `json:"connection_desc"`
-	Protocol          string    `json:"protocol"`
-	TotalTimeMs       float64   `json:"total_time_ms"`
-	RequestSize       int       `json:"request_size"`
-	ResponseSize      int       `json:"response_size"`
-	Process           string    `json:"process"`
-	NetInternalTimeMs float64   `json:"net_internal_time_ms"`
-	ReadSocketTimeMs  float64   `json:"read_socket_time_ms"`
-	StartTime         time.Time `json:"start_time"`
-	Request           string    `json:"request"`
-	Response          string    `json:"response"`
-}
+// type ConnectionRecord struct {
+// 	ID                int       `json:"id"`
+// 	ConnectionDesc    string    `json:"connection_desc"`
+// 	Protocol          string    `json:"protocol"`
+// 	TotalTimeMs       float64   `json:"total_time_ms"`
+// 	RequestSize       int       `json:"request_size"`
+// 	ResponseSize      int       `json:"response_size"`
+// 	Process           string    `json:"process"`
+// 	NetInternalTimeMs float64   `json:"net_internal_time_ms"`
+// 	ReadSocketTimeMs  float64   `json:"read_socket_time_ms"`
+// 	StartTime         time.Time `json:"start_time"`
+// 	Request           string    `json:"request"`
+// 	Response          string    `json:"response"`
+// }
 
-func recordToConnectionRecord(record *common.AnnotatedRecord) *ConnectionRecord {
-	return &ConnectionRecord{
-		ConnectionDesc:    record.ConnDesc.SimpleString(),
-		Protocol:          bpf.ProtocolNamesMap[bpf.AgentTrafficProtocolT(record.ConnDesc.Protocol)],
-		TotalTimeMs:       c.ConvertDurationToMillisecondsIfNeeded(record.TotalDuration, false),
-		RequestSize:       record.ReqSize,
-		ResponseSize:      record.RespSize,
-		Process:           c.GetPidCmdString(int32(record.Pid)),
-		NetInternalTimeMs: c.ConvertDurationToMillisecondsIfNeeded(record.BlackBoxDuration, false),
-		ReadSocketTimeMs:  c.ConvertDurationToMillisecondsIfNeeded(record.ReadFromSocketBufferDuration, false),
-		StartTime:         time.Unix(0, int64(record.StartTs)),
-		Request:           record.Req.FormatToString(),
-		Response:          record.Resp.FormatToString(),
-	}
-}
+// func recordToConnectionRecord(record *common.AnnotatedRecord) *ConnectionRecord {
+// 	return &ConnectionRecord{
+// 		ConnectionDesc:    record.ConnDesc.SimpleString(),
+// 		Protocol:          bpf.ProtocolNamesMap[bpf.AgentTrafficProtocolT(record.ConnDesc.Protocol)],
+// 		TotalTimeMs:       c.ConvertDurationToMillisecondsIfNeeded(record.TotalDuration, false),
+// 		RequestSize:       record.ReqSize,
+// 		ResponseSize:      record.RespSize,
+// 		Process:           c.GetPidCmdString(int32(record.Pid)),
+// 		NetInternalTimeMs: c.ConvertDurationToMillisecondsIfNeeded(record.BlackBoxDuration, false),
+// 		ReadSocketTimeMs:  c.ConvertDurationToMillisecondsIfNeeded(record.ReadFromSocketBufferDuration, false),
+// 		StartTime:         time.Unix(0, int64(record.StartTs)),
+// 		Request:           record.Req.FormatToString(),
+// 		Response:          record.Resp.FormatToString(),
+// 	}
+// }
 
 var recordCount int
 
@@ -629,11 +629,12 @@ func sendRecordToService(url string, record *common.AnnotatedRecord) error {
 		fmt.Println("record pid equal to current pid, skip")
 		return nil
 	}
-	// 如果 c.GetPidCmdString(int32(record.Pid))包含"kyanos"，则不发送
-	if strings.Contains(c.GetPidCmdString(int32(record.Pid)), "kyanos") {
-		fmt.Println("record pid contains kyanos, skip")
-		return nil
-	}
+	// 对record的Req和Resp使用FormatToString进行处理
+	record.ReqStr = record.Req.FormatToString()
+	record.RespStr = record.Resp.FormatToString()
+	record.RemoteAddrStr = record.RemoteAddr.String()
+	record.LocalAddrStr = record.LocalAddr.String()
+	record.PidStr = c.GetPidCmdString(int32(record.Pid))
 	// 判断record
 	recordCount++
 	if recordCount > 100 {
@@ -641,9 +642,9 @@ func sendRecordToService(url string, record *common.AnnotatedRecord) error {
 		os.Exit(0)
 	}
 	// 将record转换为ConnectionRecord
-	connectionRecord := recordToConnectionRecord(record)
+	// onnectionRecord := recordToConnectionRecord(record)
 	// 将record转换为JSON
-	data, err := json.Marshal(connectionRecord)
+	data, err := json.Marshal(record)
 	if err != nil {
 		return fmt.Errorf("error marshalling record: %v", err)
 	}
@@ -661,7 +662,6 @@ func sendRecordToService(url string, record *common.AnnotatedRecord) error {
 		return fmt.Errorf("error sending request: %v", err)
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("received non-OK response: %v", resp.Status)
 	}

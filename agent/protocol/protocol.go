@@ -26,6 +26,11 @@ type Record struct {
 	ResponseStatus ResponseStatus
 }
 
+type RecordToK8s struct {
+	ReqStr  string `json:"reqStr"`
+	RespStr string `json:"respStr"`
+}
+
 func NewRecord(req ParsedMessage, resp ParsedMessage) *Record {
 	return &Record{
 		Req:  req,

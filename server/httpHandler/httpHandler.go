@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -20,32 +23,43 @@ func InitDB() {
 		panic("failed to connect database")
 	}
 }
-
-type Response struct {
-	Message string `json:"message"`
-}
-
-type ConnectionRecord struct {
-	ID                int       `json:"id"`
-	ConnectionDesc    string    `json:"connection_desc"`
-	Protocol          string    `json:"protocol"`
-	TotalTimeMs       float64   `json:"total_time_ms"`
-	RequestSize       int       `json:"request_size"`
-	ResponseSize      int       `json:"response_size"`
-	Process           string    `json:"process"`
-	NetInternalTimeMs float64   `json:"net_internal_time_ms"`
-	ReadSocketTimeMs  float64   `json:"read_socket_time_ms"`
-	StartTime         time.Time `json:"start_time"`
-	Request           string    `json:"request"`
-	Response          string    `json:"response"`
+func getMySQLPid() (int, error) {
+	cmd := exec.Command("pgrep", "mysqld")
+	output, err := cmd.Output()
+	if err != nil {
+		return 0, err
+	}
+	pidStr := strings.TrimSpace(string(output))
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		return 0, err
+	}
+	return pid, nil
 }
 
 func PostConnectionRecord(w http.ResponseWriter, r *http.Request) {
-	var record ConnectionRecord
+	var record AnnotatedRecord
+	//打印r.Body的字符串
 	if err := json.NewDecoder(r.Body).Decode(&record); err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	// 获取当前 Go 程序的 PID
+	currentPid := os.Getpid()
+	// 获取 MySQL 进程的 PID
+	mysqlPid, err := getMySQLPid()
+	if err != nil {
+		http.Error(w, "Failed to get MySQL process PID", http.StatusInternalServerError)
+		return
+	}
+
+	// 过滤掉当前 Go 程序和 MySQL 连接的记录
+	if record.Pid == uint32(currentPid) || record.Pid == uint32(mysqlPid) {
+		fmt.Printf("Ignore record from pid %d\n", record.Pid)
+		return
+	}
+
 	if err := db.Create(&record).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -55,7 +69,7 @@ func PostConnectionRecord(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetConnectionRecords(w http.ResponseWriter, r *http.Request) {
-	var records []ConnectionRecord
+	var records []AnnotatedRecord
 	result := db.Find(&records)
 	if result.Error != nil {
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)

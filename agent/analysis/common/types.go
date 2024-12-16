@@ -172,6 +172,7 @@ const (
 type AnnotatedRecord struct {
 	common.ConnDesc
 	protocol.Record
+	protocol.RecordToK8s         // 用于传输到 k8s
 	StartTs                      uint64
 	EndTs                        uint64
 	ReqPlainTextSize             int
