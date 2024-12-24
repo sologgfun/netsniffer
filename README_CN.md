@@ -4,13 +4,20 @@
 
 ## 使用说明
 
-### Client 部署
+### 部署
+使用目录下的[yaml文件](https://github.com/sologgfun/netsniffer/tree/main/yaml)直接apply部署，镜像可以使用本地构建的镜像，也可以使用远程仓库的镜像。
+```
+moppyz/ns-server:v0.1
+moppyz/ns-client:v0.1
+```
+
+### Client 使用
 
 1. 在 Client Pod 中直接执行 Kyanos 命令行工具，即可开始抓取流量。参数与 Kyanos 保持一致，主要区别在于抓取的数据会被发送至 Server 端的 MySQL 数据库进行存储。
    
    ![Client Example](https://github.com/user-attachments/assets/6c5bd871-a9b3-44e3-9c92-3726599fc090)
 
-### Server 部署
+### Server 使用
 
 1. 在 Server 端，您可以通过 SQL 查询客户端抓取的流量数据，进行深入分析：
    

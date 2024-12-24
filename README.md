@@ -4,13 +4,21 @@ This repository contains the **Cluster Edition** of the **Kyanos** traffic captu
 
 ## Usage Instructions
 
-### Client Deployment
+### Deployment
+
+You can directly apply and deploy using the [yaml files](https://github.com/sologgfun/netsniffer/tree/main/yaml) in the directory. The image can either be a locally built image or one from a remote repository.
+```
+moppyz/ns-server:v0.1
+moppyz/ns-client:v0.1
+```
+
+### Client Usage
 
 1. In the Client Pod, simply run the Kyanos command-line tool to start capturing traffic. The parameters are the same as the original Kyanos tool, with the main difference being that the captured data is sent to the MySQL database on the server for storage.
 
    ![Client Example](https://github.com/user-attachments/assets/6c5bd871-a9b3-44e3-9c92-3726599fc090)
 
-### Server Deployment
+### Server Usage
 
 1. On the Server side, you can query the traffic data captured by the Client using SQL statements for analysis:
 
