@@ -89,7 +89,7 @@ btfgen:
 # keep intermediate (.skel.h, .bpf.o, etc) targets
 .SECONDARY:
 
-IMAGE_NAME ?= ccr.ccs.tencentyun.com/ktns/kt-npd-client
+IMAGE_NAME ?= ccr.ccs.tencentyun.com/ktns/ns-client
 
 IMAGE_TAG ?= v0.1
 
@@ -104,7 +104,7 @@ image:
 	@$(build-image)
 	
 pushecloud:
-	docker tag ccr.ccs.tencentyun.com/ktns/kt-npd-client:v0.1 todohub/kt-npd-client:v0.1
-	docker push todohub/kt-npd-client:v0.1
-	docker tag ccr.ccs.tencentyun.com/ktns/kt-npd-server:v0.1 todohub/kt-npd-server:v0.1
-	docker push todohub/kt-npd-server:v0.1
+	docker tag ccr.ccs.tencentyun.com/ktns/ns-client:v0.1 todohub/ns-client:v0.1
+	docker push todohub/ns-client:v0.1
+	docker tag ccr.ccs.tencentyun.com/ktns/ns-server:v0.1 todohub/ns-server:v0.1
+	docker push todohub/ns-server:v0.1

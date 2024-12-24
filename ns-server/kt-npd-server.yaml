@@ -7,23 +7,23 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kt-npd-server
+  name: ns-server
   namespace: kt
   labels:
-    app: kt-npd-server
+    app: ns-server
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kt-npd-server
+      app: ns-server
   template:
     metadata:
       labels:
-        app: kt-npd-server
+        app: ns-server
     spec:
       containers:
-      - name: kt-npd-server
-        image: todohub/kt-npd-server:v0.1
+      - name: ns-server
+        image: todohub/ns-server:v0.1
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -32,14 +32,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kt-npd-server
+  name: ns-server
   namespace: kt
   labels:
-    app: kt-npd-server
+    app: ns-server
 spec:
   ports:
   - port: 8080
     targetPort: 8080
   selector:
-    app: kt-npd-server
+    app: ns-server
   type: ClusterIP

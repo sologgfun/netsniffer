@@ -44,21 +44,6 @@ func PostConnectionRecord(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	// 获取当前 Go 程序的 PID
-	// currentPid := os.Getpid()
-	// // 获取 MySQL 进程的 PID
-	// mysqlPid, err := GetMySQLPid()
-	// if err != nil {
-	// 	http.Error(w, "Failed to get MySQL process PID", http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// // 过滤掉当前 Go 程序和 MySQL 连接的记录
-	// if record.Pid == uint32(currentPid) || record.Pid == uint32(mysqlPid) {
-	// 	fmt.Printf("Ignore record from pid %d\n", record.Pid)
-	// 	return
-	// }
-
 	if err := db.Create(&record).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

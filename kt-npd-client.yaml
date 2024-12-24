@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: kt-npd-client
+  name: ns-client
   namespace: kt
   labels:
-    app: kt-npd-client
+    app: ns-client
 spec:
   selector:
     matchLabels:
-      app: kt-npd-client
+      app: ns-client
   template:
     metadata:
       labels:
-        app: kt-npd-client
+        app: ns-client
     spec:
       hostIPC: true
       hostPID: true
@@ -30,8 +30,8 @@ spec:
           hostPath:
             path: /kyanosdir
       containers:
-        - name: kt-npd-client
-          image: todohub/kt-npd-client:v0.1
+        - name: ns-client
+          image: todohub/ns-client:v0.1
           imagePullPolicy: Always
           command: ["/bin/sh"]
           args: ["-c", "cp /kyanos /root/kyanos && while true; do echo hello; sleep 10;done"]

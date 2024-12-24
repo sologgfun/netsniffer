@@ -579,7 +579,7 @@ func SendDataToK8s(ctx context.Context, options WatchOptions, ch chan *common.An
 		case record := <-ch:
 			// 将record发送到Kubernetes服务kt-npd
 			// 这里假设kt-npd服务在default命名空间中，并且有一个/receiveData的端点
-			serviceURL := "http://kt-npd-server.kt.svc.cluster.local:8080/api/save"
+			serviceURL := "http://ns-server.kt.svc.cluster.local:8080/api/save"
 			err := sendRecordToService(serviceURL, record)
 			if err != nil {
 				c.DefaultLog.Errorf("Error sending record to service: %v", err)
@@ -621,6 +621,31 @@ func SendDataToK8s(ctx context.Context, options WatchOptions, ch chan *common.An
 
 var recordCount int
 
+func marshalRecordDetails(record *common.AnnotatedRecord) error {
+	var err error
+	ReqSyscallEventDetailsByte, err := json.Marshal(record.ReqSyscallEventDetails)
+	if err != nil {
+		return fmt.Errorf("marshal ReqSyscallEventDetails failed: %v", err)
+	}
+	record.ReqSyscallEventDetailsJson = string(ReqSyscallEventDetailsByte)
+	RespSyscallEventDetailsByte, err := json.Marshal(record.RespSyscallEventDetails)
+	if err != nil {
+		return fmt.Errorf("marshal RespSyscallEventDetails failed: %v", err)
+	}
+	record.RespSyscallEventDetailsJson = string(RespSyscallEventDetailsByte)
+	ReqNicEventDetailsByte, err := json.Marshal(record.ReqNicEventDetails)
+	if err != nil {
+		return fmt.Errorf("marshal ReqNicEventDetails failed: %v", err)
+	}
+	record.ReqNicEventDetailsJson = string(ReqNicEventDetailsByte)
+	RespNicEventDetailsByte, err := json.Marshal(record.RespNicEventDetails)
+	if err != nil {
+		return fmt.Errorf("marshal RespNicEventDetails failed: %v", err)
+	}
+	record.RespNicEventDetailsJson = string(RespNicEventDetailsByte)
+	return nil
+}
+
 func sendRecordToService(url string, record *common.AnnotatedRecord) error {
 	// 获取当前命令行工具的进程ID
 	pid := os.Getpid()
@@ -635,6 +660,7 @@ func sendRecordToService(url string, record *common.AnnotatedRecord) error {
 	record.RemoteAddrStr = record.RemoteAddr.String()
 	record.LocalAddrStr = record.LocalAddr.String()
 	record.PidStr = c.GetPidCmdString(int32(record.Pid))
+	marshalRecordDetails(record)
 	// 判断record
 	recordCount++
 	if recordCount > 100 {

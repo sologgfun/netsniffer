@@ -48,6 +48,11 @@ type AnnotatedRecord struct {
 	// RespSyscallEventDetails      []SyscallEventDetail
 	// ReqNicEventDetails           []NicEventDetail
 	// RespNicEventDetails          []NicEventDetail
+	// Json用于存入数据库
+	ReqSyscallEventDetailsJson  string
+	RespSyscallEventDetailsJson string
+	ReqNicEventDetailsJson      string
+	RespNicEventDetailsJson     string
 }
 type SyscallEventDetail PacketEventDetail
 type NicEventDetail struct {

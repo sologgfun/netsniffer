@@ -27,9 +27,9 @@ CREATE TABLE IF NOT EXISTS annotated_records (
     copy_to_socket_buffer_duration FLOAT DEFAULT 0.0,
     read_from_socket_buffer_duration FLOAT DEFAULT 0.0,
     start_ts BIGINT UNSIGNED DEFAULT 0,
-    end_ts BIGINT UNSIGNED DEFAULT 0
-    -- req_syscall_event_details TEXT,
-    -- resp_syscall_event_details TEXT,
-    -- req_nic_event_details TEXT,
-    -- resp_nic_event_details TEXT
+    end_ts BIGINT UNSIGNED DEFAULT 0,
+    req_syscall_event_details_json TEXT,
+    resp_syscall_event_details_json TEXT,
+    req_nic_event_details_json TEXT,
+    resp_nic_event_details_json TEXT
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

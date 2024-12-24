@@ -10,4 +10,4 @@ https://cloud.tencent.com/document/product/1141/63910
 
 docker login ccr.ccs.tencentyun.com --username=100039849709
 
-ccr.ccs.tencentyun.com/ktns/kt-npd-client:v0.1
+ccr.ccs.tencentyun.com/ktns/ns-client:v0.1

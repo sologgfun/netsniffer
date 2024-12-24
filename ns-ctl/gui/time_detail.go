@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"kyanos/agent/analysis/common"
 	c "kyanos/common"
+	"runtime/debug"
 	"slices"
 	"strings"
 
 	"github.com/Ha4sh-447/flowcharts/diagrams"
 	"github.com/Ha4sh-447/flowcharts/draw"
+	"k8s.io/klog/v2"
 )
 
 func ViewRecordTimeDetailAsFlowChart(r *common.AnnotatedRecord) (result string) {
 	defer func() {
 		if err := recover(); err != nil {
-			c.DefaultLog.Errorln(err)
+			klog.Errorf("Caught panic: %v\nStack trace: %s", err, debug.Stack())
 			result = r.TimeDetailInfo()
 		}
 	}()
@@ -217,7 +219,15 @@ func nicEventDetailsAsNicEvents(details []common.NicEventDetail) []nicEvent {
 	for _, detail := range details {
 		for key, value := range detail.Attributes {
 			if ifname := strings.TrimPrefix(key, "time-"); ifname != key {
-				eventMap[ifname] = value.(int64)
+				switch v := value.(type) {
+				case float64:
+					eventMap[ifname] = int64(v)
+				case int64:
+					eventMap[ifname] = v
+				default:
+					klog.Warningf("unknown type %T for %s", v, key)
+					continue
+				}
 			}
 		}
 	}

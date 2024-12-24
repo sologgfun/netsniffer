@@ -3,6 +3,7 @@ package gui
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"fmt"
 	"kyanos/agent/analysis/common"
 	"kyanos/agent/protocol"
@@ -371,7 +372,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			fallthrough
 		case "enter":
 			m.chosen = true
-
 			if m.chosen {
 				selected := m.table.SelectedRow()
 				if selected != nil {
@@ -379,8 +379,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					r := (*m.records)[idx-1]
 					line := strings.Repeat("+", m.viewport.Width)
 					timeDetail := ViewRecordTimeDetailAsFlowChart(r)
-					// m.viewport.SetContent("[Request]\n\n" + c.TruncateString(r.Req.FormatToString(), 1024) + "\n" + line + "\n[Response]\n\n" +
-					// 	c.TruncateString(r.Resp.FormatToString(), 10240))
 					m.viewport.SetContent(
 						timeDetail + "\n" + line + "\n" +
 							r.String(common.AnnotatedRecordToStringOptions{
@@ -388,17 +386,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								MetricTypeSet:   common.MetricTypeSet{common.TotalDuration: true},
 								IncludeConnDesc: true,
 							}) + "\n" + line + "\n" +
-							"[Request]\n\n" + c.TruncateString(r.Req.FormatToString(), m.options.MaxRecordContentDisplayBytes) + "\n" + line +
-							"\n[Response]\n\n" + c.TruncateString(r.Resp.FormatToString(), m.options.MaxRecordContentDisplayBytes))
+							"[Request=]\n\n" + c.TruncateString(r.ReqStr, m.options.MaxRecordContentDisplayBytes) + "\n" + line +
+							"\n[Response=]\n\n" + c.TruncateString(r.RespStr, m.options.MaxRecordContentDisplayBytes))
 				} else {
 					m.chosen = false
 					break
 				}
 			}
 			return m, nil
-			// return m, tea.Batch(
-			// 	tea.Printf("Let's go to %s!", m.table.SelectedRow()[1]),
-			// )
 		}
 	case tea.WindowSizeMsg:
 		m.updateDetailViewPortSize(msg)
@@ -542,8 +537,9 @@ func PrintRecords(db *gorm.DB) {
 	}
 	commonRecords := &[]*common.AnnotatedRecord{}
 	convertToAnnotatedRecords(records, commonRecords)
-	// result := db.Find(&records)
-	options := WatchOptions{}
+	options := WatchOptions{
+		MaxRecordContentDisplayBytes: 1024,
+	}
 	m := NewModel(options, commonRecords, tea.WindowSizeMsg{}, common.NoneType, false).(*model)
 	m.records = commonRecords
 	prog := tea.NewProgram(m, tea.WithContext(context.Background()), tea.WithAltScreen())
@@ -555,7 +551,7 @@ func PrintRecords(db *gorm.DB) {
 
 func convertToAnnotatedRecords(record []AnnotatedRecord, commonRecord *[]*common.AnnotatedRecord) {
 	for _, r := range record {
-		*commonRecord = append(*commonRecord, &common.AnnotatedRecord{
+		newCommonRecord := &common.AnnotatedRecord{
 			ConnDesc: c.ConnDesc{
 				LocalPort:  c.Port(r.LocalPort),
 				RemotePort: c.Port(r.RemotePort),
@@ -582,8 +578,45 @@ func convertToAnnotatedRecords(record []AnnotatedRecord, commonRecord *[]*common
 			BlackBoxDuration:             r.BlackBoxDuration,
 			CopyToSocketBufferDuration:   r.CopyToSocketBufferDuration,
 			ReadFromSocketBufferDuration: r.ReadFromSocketBufferDuration,
-		})
+		}
+		if err := unmarshalRecordDetails(r, newCommonRecord); err != nil {
+			fmt.Println(err)
+			continue
+		}
+		*commonRecord = append(*commonRecord, newCommonRecord)
 	}
+}
+
+func unmarshalRecordDetails(record AnnotatedRecord, commonRecord *common.AnnotatedRecord) error {
+	// 反序列化 ReqSyscallEventDetails
+	if record.ReqNicEventDetailsJson != "" {
+		if err := json.Unmarshal([]byte(record.ReqSyscallEventDetailsJson), &commonRecord.ReqSyscallEventDetails); err != nil {
+			return fmt.Errorf("unmarshal ReqSyscallEventDetails failed: %v", err)
+		}
+	}
+
+	// 反序列化 RespSyscallEventDetails
+	if record.RespSyscallEventDetailsJson != "" {
+		if err := json.Unmarshal([]byte(record.RespSyscallEventDetailsJson), &commonRecord.RespSyscallEventDetails); err != nil {
+			return fmt.Errorf("unmarshal RespSyscallEventDetails failed: %v", err)
+		}
+	}
+
+	// 反序列化 ReqNicEventDetails
+	if record.ReqNicEventDetailsJson != "" {
+		if err := json.Unmarshal([]byte(record.ReqNicEventDetailsJson), &commonRecord.ReqNicEventDetails); err != nil {
+			return fmt.Errorf("unmarshal ReqNicEventDetails failed: %v", err)
+		}
+	}
+
+	// 反序列化 RespNicEventDetails
+	if record.RespNicEventDetailsJson != "" {
+		if err := json.Unmarshal([]byte(record.RespNicEventDetailsJson), &commonRecord.RespNicEventDetails); err != nil {
+			return fmt.Errorf("unmarshal RespNicEventDetails failed: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (m *model) SortBy() rc.SortBy {

@@ -1,4 +1,4 @@
-IMAGE_NAME ?= ccr.ccs.tencentyun.com/ktns/kt-npd-server
+IMAGE_NAME ?= ccr.ccs.tencentyun.com/ktns/ns-server
 IMAGE_TAG ?= v0.1
 
 image:
