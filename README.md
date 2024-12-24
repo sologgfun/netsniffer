@@ -1,59 +1,88 @@
-# Kyanos 流量抓取工具 - 集群扩展版
+# Kyanos Traffic Capture Tool - Cluster Edition
 
-本仓库是 **Kyanos** 流量抓取工具的集群扩展版本，专为 Kubernetes 集群环境设计。该工具采用 **1 个 Server + n 个 Client** 的架构，能够高效地在集群中分布式地抓取流量数据并进行集中分析。
+This repository contains the **Cluster Edition** of the **Kyanos** traffic capture tool, specifically designed for Kubernetes cluster environments. It follows a **1 Server + n Clients** architecture, enabling efficient distributed traffic data capture across the cluster with centralized analysis.
 
-## 系统架构概述
+## Usage Instructions
 
-本工具的架构设计为 **Server-Client 模式**：
+### Client Deployment
 
-- **1 个 Server + n 个 Client**：Server 作为数据汇总和分析的核心，多个 Client 部署在集群的各个节点上，负责流量的采集。
-> 组件参考图
-<img width="538" alt="image" src="https://github.com/user-attachments/assets/60d1b56a-8cd4-40dc-9433-1671b308f8e5">
+1. In the Client Pod, simply run the Kyanos command-line tool to start capturing traffic. The parameters are the same as the original Kyanos tool, with the main difference being that the captured data is sent to the MySQL database on the server for storage.
 
-> server数据库参考图
-<img width="674" alt="image" src="https://github.com/user-attachments/assets/c5a8acda-299c-4629-8fc5-5edb7d8ce74d">
+   ![Client Example](https://github.com/user-attachments/assets/6c5bd871-a9b3-44e3-9c92-3726599fc090)
 
-通过client采集数据通过server部署的svc发给server端处理
+### Server Deployment
 
-- **Kubernetes 集成**：通过 Kubernetes 的 YAML 配置文件进行自动化部署，简化集群内应用的部署和管理。
-  - **Client 部署**：使用 DaemonSet（DS）在集群的每个节点上部署 Client，确保每个节点上都有一个 Client 实例。
-  - **Server 部署**：使用 Deployment 部署 Server，支持水平扩展以应对高负载需求。
-- **特权 Pod**：利用 Kubernetes 特权 Pod 的特性，客户端能够抓取包括容器在内的各类流量，确保集群内所有节点的流量都能被采集。
-- **临时数据库**：Client 抓取的流量数据会暂时存储到 Server 的数据库中，进行后续分析。
+1. On the Server side, you can query the traffic data captured by the Client using SQL statements for analysis:
 
-### 当前版本
+   ```bash
+   mysql -u root -p
+   # Initial password: rootpwd
+   ```
 
-**v1.0.0** - 已验证可行性，并在实际环境中部署成功。
+   ![MySQL Example](https://github.com/user-attachments/assets/e78bdbed-3909-4a34-a42d-752ff2ffcf93)
 
-## 后续开发计划
+2. Use the `./ns-ctl` tool to access the MySQL database and analyze the data collected by Kyanos:
 
-以下是未来版本的开发计划和功能优化方向：
+   ![ns-ctl Example](https://github.com/user-attachments/assets/490fedc3-abb5-4f62-8d05-06eff65655bf)
 
-### 1. **eBPF 功能优化**
-   - 当前 eBPF 功能基于 Kyanos 库实现，但在性能和灵活性上还有提升空间。我们正在探索如何优化 eBPF 以更好地支持大规模集群的流量抓取。
+## System Architecture Overview
 
-### 2. **SQL Web GUI 数据分析界面**
-   - 后续将为 Server 增加一个 SQL Web GUI，允许用户通过 Web 界面查询和分析捕获的流量数据。此功能将使用户可以通过直观的界面进行实时数据分析，简化操作和使用。
+The tool is designed using a **Server-Client** architecture:
 
-### 3. **兼容性提升**
-   - 我们将持续增强与不同 Kubernetes 版本以及云原生环境的兼容性，以确保工具能够在各种 Kubernetes 集群中无缝运行。
+- **1 Server + n Clients**: The Server acts as the central hub for data aggregation and analysis, while multiple Clients are deployed across the cluster nodes to capture traffic.
 
-### 4. **Benchmark 性能分析**
-   - 我们计划对工具的性能进行全面的基准测试，评估其在不同规模集群中的表现，并针对性能瓶颈进行优化，确保在生产环境下的高效运行。
+  > Component architecture diagram:
 
-## 主要特性
+  ![Architecture Diagram](https://github.com/user-attachments/assets/9a9b440d-f2d8-4dd7-a8fe-92a10574e222)
 
-- **可扩展的部署架构**：可以在 Kubernetes 集群中轻松部署和扩展，支持大规模分布式部署，无侵入性。
-- **分布式流量抓取**：客户端利用特权 Pod 捕获每个节点（包括容器）的网络流量，确保集群内所有节点的数据都能被捕获。
-- **集中式数据收集**：所有抓取的流量数据都集中存储在 Server 的临时数据库中，便于后续的数据分析。
-- **可定制和可扩展**：支持用户根据需求自定义抓取规则、数据处理方式等，适应不同的业务场景。
+  The captured data is sent from the Clients to the Server via the service (SVC) deployed on the Server.
 
-## 开发指南
+- **Kubernetes Integration**: Simplified deployment and management through Kubernetes YAML configuration files:
+  - **Client Deployment**: A DaemonSet (DS) is used to deploy a Client on each node, ensuring traffic capture on every node in the cluster.
+  - **Server Deployment**: The Server is deployed using a Deployment, supporting horizontal scaling to handle high traffic loads.
 
-1. server和client分别见server文件和根目录
-2. 个人使用云主机基于debian12.0远程开发，进行开发需要一定ebpf及golang的基础知识，可参考下方文档
+- **Privileged Pods**: The Clients leverage Kubernetes privileged Pods to capture traffic from all types of traffic, including container traffic, ensuring data collection across all nodes in the cluster.
+- **Temporary Database**: The traffic data captured by the Clients is temporarily stored in the Server's database for subsequent analysis.
 
-## 参考资料
+### Current Version
+
+**v1.0.0** - Successfully validated and deployed in a real environment.
+
+## Development Guide
+
+### Project Structure
+
+1. **server** - `ns-server`
+2. **ctl** - `ns-ctl`
+3. **client** - Root directory
+
+## Future Development Plans
+
+The following features and improvements are planned for future versions:
+
+### 1. **eBPF Functionality Optimization**
+   - The current eBPF functionality is based on the Kyanos library but still has room for performance and flexibility improvements. We are working on optimizing eBPF to better support traffic capture in large-scale clusters.
+
+### 2. **SQL Web GUI for Data Analysis**
+   - A SQL Web GUI will be added to the Server in future versions, allowing users to query and analyze captured traffic data through a web interface. This feature will provide an intuitive, user-friendly experience for real-time data analysis.
+
+### 3. **Compatibility Enhancements**
+   - We will continue to improve compatibility with different Kubernetes versions and cloud-native environments, ensuring the tool runs seamlessly across various Kubernetes clusters.
+
+### 4. **Benchmark Performance Analysis**
+   - We plan to conduct comprehensive performance benchmarking, evaluating the tool's performance across different cluster sizes, and optimize for potential bottlenecks to ensure efficient production use.
+
+## Key Features
+
+- **Scalable Deployment Architecture**: Easily deployable and scalable in Kubernetes clusters, supporting large-scale distributed deployments with zero intrusion.
+- **Distributed Traffic Capture**: Clients use privileged Pods to capture network traffic from each node (including containers), ensuring comprehensive data collection across the entire cluster.
+- **Centralized Data Collection**: All captured traffic data is stored in a temporary database on the Server for easy access and analysis.
+- **Customizable and Extensible**: The tool allows users to define custom traffic capture rules and data processing methods to fit specific use cases.
+
+## References
+
+> This project was developed on a cloud-hosted Debian 12.0 instance and requires a basic understanding of eBPF and Go programming. The following resources may be helpful:
+
 - [Getting Started with eBPF in Go](https://ebpf-go.dev/guides/getting-started/)
-- [[译] 为容器时代设计的高级 eBPF 内核特性（FOSDEM, 2021）](https://arthurchiao.art/blog/advanced-bpf-kernel-features-for-container-age-zh/#41-进出宿主机的容器流量host---pod)
-- [eBPF 开发实践教程](https://eunomia.dev/zh/tutorials/)
+- [Advanced eBPF Kernel Features for Container Age (FOSDEM, 2021)](https://arthurchiao.art/blog/advanced-bpf-kernel-features-for-container-age-zh/#41-进出宿主机的容器流量host---pod)
+- [eBPF Development Tutorial](https://eunomia.dev/zh/tutorials/)
