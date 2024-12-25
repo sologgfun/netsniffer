@@ -31,7 +31,7 @@ spec:
             path: /kyanosdir
       containers:
         - name: ns-client
-          image: todohub/ns-client:v0.1
+          image: moppyz/ns-client:v0.1
           imagePullPolicy: Always
           command: ["/bin/sh"]
           args: ["-c", "cp /kyanos /root/kyanos && while true; do echo hello; sleep 10;done"]

@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: ns-server
-        image: todohub/ns-server:v0.1
+        image: moppyz/ns-server:v0.1
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
